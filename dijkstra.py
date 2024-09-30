@@ -1,7 +1,8 @@
 import pygame
 import math
 from pygame import gfxdraw
-from typing import List
+from typing import List, Dict
+from queue import PriorityQueue
 from variables import *
 import sys
 
@@ -13,13 +14,18 @@ clock = pygame.time.Clock()
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+def get_mouse_coords():
+    mouse = pygame.mouse.get_pos()
+    return mouse
+
+
 class Node:
     def __init__(self, x: int, y: int, name: str):
         self.x = x
         self.y = y
         self.name = name
 
-        self.final = False
+        self.root = False
         self.action = False
 
         self.radius = NODE_RADIUS
@@ -27,12 +33,16 @@ class Node:
         self.border_width = BORDER_WIDTH
         self.border_color = BLACK
 
-        self.value = "MAXINT"
+        self.value = float("inf")
+        self.parent = None  # Add parent attribute for path reconstruction
         
-    def draw(self, mouse):
+    def draw(self):
         """Draws the node"""
 
-        if self.final == True:
+        if self.action == "Current":
+            self.color = BLUE
+
+        if self.root == True:
             self.color = GREEN
 
         # Draw circle
@@ -52,7 +62,9 @@ class Node:
         gfxdraw.aacircle(screen, self.x, self.y, self.radius+1, self.border_color)
 
         if self.action == "Connect":
-            pygame.draw.line(screen, self.border_color, (self.x, self.y), (mouse.x, mouse.y), self.border_width)
+            mouse_x, mouse_y = get_mouse_coords()
+            pygame.draw.line(screen, self.border_color, (self.x, self.y), (mouse_x, mouse_y), self.border_width)
+
 
     def mouse_over(self, coords: tuple):
         """Checks if the mouse is over the node"""
@@ -71,16 +83,14 @@ class Node:
         self.color = DARK_GRAY
         self.action = "Move"
         return True
-    
-        
-        
+            
 
 class Edge:
     def __init__(self, start: Node, end: Node):
         self.start = start
         self.end = end
         self.action = False
-        self.value = ""
+        self.value = 1
 
         self.color = BLACK
         self.width = EDGE_THICKNESS
@@ -90,7 +100,7 @@ class Edge:
         self.set_color()
         
         pygame.draw.line(screen, self.color, (self.start.x, self.start.y), (self.end.x, self.end.y), self.width) 
-        text = FONT.render(self.value if self.value else "Add value", True, BLACK)
+        text = FONT.render(str(self.value), True, BLACK)
         screen.blit(text, ((self.start.x + self.end.x) // 2 - text.get_width() // 2 + 20 , (self.start.y + self.end.y) // 2 - text.get_height() // 2 - 20))
 
     def calculate_new_edge_points(self):
@@ -172,7 +182,42 @@ class Graph:
     
     def gen_name(self):
         return chr(ord('A') + len(self.nodes))
+    
+    def get_next_nodes(self, node: Node) -> Dict[Node, int]:
+        next_nodes = {}
+        for edge in self.edges:
+            if edge.start == node:
+                next_nodes[edge.end] = edge.value
+            elif edge.end == node:
+                next_nodes[edge.start] = edge.value
+        return next_nodes
+    
+    def dijkstra_iteration(self, start: Node):
+        distances = {node: float('infinity') for node in self.nodes}
+        distances[start] = 0
 
+        pq = PriorityQueue()
+        pq.put((0, start))
+
+        previous = {node: None for node in self.nodes}
+        
+        while not pq.empty():
+            current_distance, current_node = pq.get()
+            
+            if current_distance > distances[current_node]:
+                continue
+                
+            for neighbor, weight in self.get_next_nodes(current_node).items():
+                distance = current_distance + weight
+                if distance < distances[neighbor]:
+                    distances[neighbor] = distance
+                    previous[neighbor] = current_node
+                    pq.put((distance, neighbor))
+
+            current_node.action = "Current"
+            draw_graph(self)
+            pygame.time.wait(1500)  # Delay to slow down the visualization
+    
 
 class Button:
     def __init__(self, x: int, y: int, width: int, height: int, text: str, function=None):
@@ -211,13 +256,6 @@ class Button:
             self.function(((self.x + self.width) * 2 , self.y + self.height))
             return True
     
-
-class Mouse:
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-
-
 def connect_nodes(graph, connected_nodes):
     """Connect two nodes with an edge"""
     connect = True
@@ -261,7 +299,7 @@ def handle_numeric_input(event , node: Node):
         the input is returned and the function exits. Otherwise, the function returns
         the updated input string.
     """
-    numeric_input = node.value
+    numeric_input = str(node.value)
 
     if pygame.K_0 <= event.key <= pygame.K_9:
         numeric_input += chr(event.key) 
@@ -280,10 +318,12 @@ def handle_numeric_input(event , node: Node):
     return numeric_input
 
 
-def event_handler(mouse: Mouse, buttons: List[Button], graph: Graph):
+def event_handler(buttons: List[Button], graph: Graph):
     action_node = None
     connected_nodes = []
-    final_nodes = []
+    root_nodes = []
+
+    mouse_x, mouse_y = get_mouse_coords()
 
     for event in pygame.event.get():
         # Quit event handling
@@ -293,28 +333,28 @@ def event_handler(mouse: Mouse, buttons: List[Button], graph: Graph):
 
         # Mouse update position
         if event.type == pygame.MOUSEMOTION:
-            mouse.x, mouse.y = event.pos
+            mouse_x, mouse_y = event.pos
             for button in buttons:
-                button.mouse_over((mouse.x, mouse.y))
+                button.mouse_over((mouse_x, mouse_y))
 
             for node in graph.nodes:
-                node.mouse_over((mouse.x, mouse.y))
+                node.mouse_over((mouse_x, mouse_y))
 
             for edge in graph.edges:
-                edge.mouse_over((mouse.x, mouse.y))
+                edge.mouse_over((mouse_x, mouse_y))
 
          # Mouse button click event
         if event.type == pygame.MOUSEBUTTONUP:
-            mouse.x, mouse.y = event.pos
+            mouse_x, mouse_y = event.pos
 
             # Button click
             for button in buttons:
-                if button.mouse_over((mouse.x, mouse.y)):
+                if button.mouse_over((mouse_x, mouse_y)):
                     button.clicked()
 
             # Edge click
             for edge in graph.edges:
-                if edge.mouse_over((mouse.x, mouse.y)):
+                if edge.mouse_over((mouse_x, mouse_y)):
                     # Reset the action of all edges marked as "Add"
                     for other_edge in graph.edges:
                         if other_edge.action == "Add":
@@ -325,7 +365,7 @@ def event_handler(mouse: Mouse, buttons: List[Button], graph: Graph):
         # Node dragging with left mouse button
         if event.type == pygame.MOUSEMOTION and pygame.mouse.get_pressed()[0]:
             for node in graph.nodes:
-                if node.mouse_over((mouse.x, mouse.y)):
+                if node.mouse_over((mouse_x, mouse_y)):
                     if node.action == "Move":
                         action_node = node
                         break
@@ -333,14 +373,14 @@ def event_handler(mouse: Mouse, buttons: List[Button], graph: Graph):
                         action_node = node
 
             if action_node is not None:
-                action_node.clicked((mouse.x, mouse.y))
+                action_node.clicked((mouse_x, mouse_y))
 
 
         # Key event handling
         if event.type == pygame.KEYUP:
             # Create a new node when 'e' is pressed
             if event.key == pygame.K_e:
-                graph.add_node((mouse.x, mouse.y))
+                graph.add_node((mouse_x, mouse_y))
 
             # Create a new edge when 'q' is pressed
             elif event.key == pygame.K_q:
@@ -348,7 +388,7 @@ def event_handler(mouse: Mouse, buttons: List[Button], graph: Graph):
                     if node.action == "Connect":
                         connected_nodes.append(node)
 
-                    elif node.mouse_over((mouse.x, mouse.y)):
+                    elif node.mouse_over((mouse_x, mouse_y)):
                         node.action = "Connect"
                         connected_nodes.append(node)
                 
@@ -363,52 +403,58 @@ def event_handler(mouse: Mouse, buttons: List[Button], graph: Graph):
             # Remove node when 'c' is pressed
             elif event.key == pygame.K_c:
                 for node in graph.nodes:
-                    if node.mouse_over((mouse.x, mouse.y)):
+                    if node.mouse_over((mouse_x, mouse_y)):
                         graph.nodes.remove(node)
             
                 for edge in graph.edges:
-                    if edge.mouse_over((mouse.x, mouse.y)):
+                    if edge.mouse_over((mouse_x, mouse_y)):
                         graph.edges.remove(edge)
 
-            # Mark node as final when 'f' is pressed
+            # Mark node as root when 'f' is pressed
             elif event.key == pygame.K_f:
                 for node in graph.nodes:
-                    if node.final == True:
-                        final_nodes.append(node)
+                    if node.root == True:
+                        root_nodes.append(node)
 
-                    if node.mouse_over((mouse.x, mouse.y)):
-                        node.final = True
+                    if node.mouse_over((mouse_x, mouse_y)):
+                        node.root = True
                     
-                if len(final_nodes) >= 2:
-                    for node in final_nodes:
-                        node.final = False
-                    final_nodes.clear()
+                if len(root_nodes) >= 2:
+                    for node in root_nodes:
+                        node.root = False
+                    root_nodes.clear()
 
-            
+            elif event.key == pygame.K_SPACE:
+                start_node = next((node for node in graph.nodes if node.root), None)
+                if start_node:
+                    graph.dijkstra_iteration(start_node)
+                    print(f"Dijkstra's algorithm completed from node {start_node.name}")
+                else:
+                    print("Please select a root node first using the 'f' key.")
 
             else:
                 # Get the target edge
                 target_edge = next((edge for edge in graph.edges if edge.action == "Add"), None)
 
                 if target_edge is not None:
-                    numeric_input = handle_numeric_input(event, target_edge)
+                    numeric_input = int(handle_numeric_input(event, target_edge))
 
                     # If input received, then update the value
                     if numeric_input is not None:
                         target_edge.value = numeric_input
 
 
-def draw_graph(graph: Graph, mouse: Mouse):
+def draw_graph(graph: Graph):
     for edge in graph.edges:
         edge.draw()
     for node in graph.nodes:
-        node.draw(mouse=mouse)
+        node.draw()
 
 
-def draw_game(graph: Graph, buttons: List[Button], mouse: Mouse):
+def draw_game(graph: Graph, buttons: List[Button]):
     screen.fill(WHITE)
 
-    draw_graph(graph, mouse=mouse)
+    draw_graph(graph)
     for button in buttons:
         button.draw()
     pygame.display.update()
@@ -419,12 +465,11 @@ def main():
     graph.add_node((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     buttons = []
     buttons.append(Button(10, 10, 100, 50, "Add Node", graph.add_node))
-    mouse = Mouse()
 
 
     while True:
-        event_handler(mouse=mouse, graph=graph, buttons=buttons)
-        draw_game(graph, buttons, mouse)
+        event_handler(graph=graph, buttons=buttons)
+        draw_game(graph, buttons)
         clock.tick(MAX_FPS)
 
 
