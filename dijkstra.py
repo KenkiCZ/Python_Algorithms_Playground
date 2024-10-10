@@ -13,6 +13,7 @@ clock = pygame.time.Clock()
 
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+buttons = []
 
 def get_mouse_coords():
     mouse = pygame.mouse.get_pos()
@@ -33,17 +34,13 @@ class Node:
         self.border_width = BORDER_WIDTH
         self.border_color = BLACK
 
-        self.value = float("inf")
+        self.value = 0
         self.parent = None  # Add parent attribute for path reconstruction
         
     def draw(self):
         """Draws the node"""
 
-        if self.action == "Current":
-            self.color = BLUE
-
-        if self.root == True:
-            self.color = GREEN
+        self.check_actions()
 
         # Draw circle
         gfxdraw.filled_circle(screen, self.x, self.y, self.radius, self.color)
@@ -66,8 +63,19 @@ class Node:
             pygame.draw.line(screen, self.border_color, (self.x, self.y), (mouse_x, mouse_y), self.border_width)
 
 
+    def check_actions(self):
+        if self.action == "Current":
+            self.color = BLUE
+
+        if self.root == True:
+            self.color = GREEN
+
     def mouse_over(self, coords: tuple):
-        """Checks if the mouse is over the node"""
+        """Checks if the mouse is over the node
+
+        Args:
+            coords (tuple): (x, y) coordinates of the mouse
+        """
         x, y = coords
         if (self.x - x)**2 + (self.y - y)**2 <= self.radius**2:
             
@@ -78,12 +86,14 @@ class Node:
         return False
 
     def clicked(self, coords: tuple):
-        """Checks if the mouse clicked on the node amd changes the action to 'move'"""
+        """Checks if the node was clicked"""
         self.x, self.y = coords
         self.color = DARK_GRAY
         self.action = "Move"
         return True
             
+    def __lt__(self, other):
+        return self.value < other.value
 
 class Edge:
     def __init__(self, start: Node, end: Node):
@@ -184,39 +194,99 @@ class Graph:
         return chr(ord('A') + len(self.nodes))
     
     def get_next_nodes(self, node: Node) -> Dict[Node, int]:
+        """Get the next nodes for a given node
+        Returns a dictionary with the next nodes and their weights
+        """
+        
         next_nodes = {}
         for edge in self.edges:
             if edge.start == node:
                 next_nodes[edge.end] = edge.value
+                edge.end.value = edge.value
             elif edge.end == node:
                 next_nodes[edge.start] = edge.value
+                edge.start.value = edge.value
+                
+        
         return next_nodes
     
-    def dijkstra_iteration(self, start: Node):
+    def dijkstra_algorithm(self, start: Node):
+        # Initialize distances and previous node tracking
         distances = {node: float('infinity') for node in self.nodes}
         distances[start] = 0
+        start.value = 0  # Set the starting node value to 0
 
         pq = PriorityQueue()
         pq.put((0, start))
 
         previous = {node: None for node in self.nodes}
-        
+        visited = set()
+
         while not pq.empty():
             current_distance, current_node = pq.get()
-            
-            if current_distance > distances[current_node]:
+
+            # Skip if we have already visited this node
+            if current_node in visited:
                 continue
-                
+
+            visited.add(current_node)
+
+            # Update node's value to the current distance from the start node
+            current_node.value = current_distance
+
+            # Check if current node is a root (but not the start node)
+            if current_node.root and current_node != start:
+                print(f"Found a root node (not the starting root): {current_node.name}")
+                draw_game(self)
+                break
+
+            # Explore neighbors
             for neighbor, weight in self.get_next_nodes(current_node).items():
-                distance = current_distance + weight
-                if distance < distances[neighbor]:
-                    distances[neighbor] = distance
+                if neighbor in visited:
+                    continue
+                new_distance = current_distance + weight
+
+                # Update distance if a shorter path is found
+                if new_distance < distances[neighbor]:
+                    distances[neighbor] = new_distance
                     previous[neighbor] = current_node
-                    pq.put((distance, neighbor))
+                    pq.put((new_distance, neighbor))
+
+                    # Update neighbor node's value to the new distance
+                    neighbor.value = new_distance
 
             current_node.action = "Current"
-            draw_graph(self)
-            pygame.time.wait(1500)  # Delay to slow down the visualization
+            draw_game(self)
+            pygame.time.wait(2500)  # Slow down visualization for 2.5 seconds
+        
+        # Reset node actions after the algorithm finishes
+        for node in self.nodes:
+            node.action = None
+
+        return previous, distances
+
+    def get_shortest_path(self, start: Node, end: Node):
+        """Returns the shortest path from start node to end node using the 'previous' dictionary."""
+        previous, distances = self.dijkstra_algorithm(start)
+        path = []
+        current_node = end
+
+        # Backtrack from the end node to the start node using the previous dictionary
+        while current_node is not None:
+            path.append(current_node)
+            current_node = previous.get(current_node, None)  # Use get() to avoid KeyError
+
+        # Reverse the path to get the correct order from start to end
+        path.reverse()
+
+        # Check if the path starts with the start node (i.e., a valid path was found)
+        if path and path[0] == start:
+            print(f"Shortest path from {start.name} to {end.name}: {[node.name for node in path]}")
+            print(f"Total distance: {distances[end]}")
+            return distances[end]
+        else:
+            print(f"No path found from {start.name} to {end.name}")
+            return None
     
 
 class Button:
@@ -281,7 +351,6 @@ def reset_node_actions(graph):
 
 
 def handle_numeric_input(event , node: Node):
-    # Check for standard numeric keys (0-9)
     """
     Handle numeric input from the user.
 
@@ -300,6 +369,7 @@ def handle_numeric_input(event , node: Node):
         the updated input string.
     """
     numeric_input = str(node.value)
+    
 
     if pygame.K_0 <= event.key <= pygame.K_9:
         numeric_input += chr(event.key) 
@@ -315,6 +385,8 @@ def handle_numeric_input(event , node: Node):
         node.action = False
         return numeric_input 
     
+    if not numeric_input:
+        numeric_input = "0"
     return numeric_input
 
 
@@ -404,6 +476,14 @@ def event_handler(buttons: List[Button], graph: Graph):
             elif event.key == pygame.K_c:
                 for node in graph.nodes:
                     if node.mouse_over((mouse_x, mouse_y)):
+
+                        edges_to_delete = []
+                        for edge in graph.edges:
+                            if edge.start == node or edge.end == node:
+                                edges_to_delete.append(edge)
+
+                        for edge in edges_to_delete:
+                            graph.edges.remove(edge)
                         graph.nodes.remove(node)
             
                 for edge in graph.edges:
@@ -424,13 +504,17 @@ def event_handler(buttons: List[Button], graph: Graph):
                         node.root = False
                     root_nodes.clear()
 
+            # Dijkstra's algorithm when 'space' is pressed
             elif event.key == pygame.K_SPACE:
-                start_node = next((node for node in graph.nodes if node.root), None)
-                if start_node:
-                    graph.dijkstra_iteration(start_node)
-                    print(f"Dijkstra's algorithm completed from node {start_node.name}")
-                else:
-                    print("Please select a root node first using the 'f' key.")
+                root_nodes = [node for node in graph.nodes if node.root]
+                if len(root_nodes) == 2:
+                    
+                        
+                    start_node = next((node for node in graph.nodes if node.root), None)
+                    if start_node:
+                        distance = graph.get_shortest_path(start_node, root_nodes[1])
+                        draw_game(graph, distance)
+                        pygame.time.wait(5000)
 
             else:
                 # Get the target edge
@@ -444,17 +528,17 @@ def event_handler(buttons: List[Button], graph: Graph):
                         target_edge.value = numeric_input
 
 
-def draw_graph(graph: Graph):
+def draw_game(graph: Graph, score: int = None):
+    screen.fill(WHITE)
+
+    if score is not None:
+        score_text = SCORE_FONT.render(f"Score: {score}", True, BLACK)
+        screen.blit(score_text, (SCREEN_WIDTH // 2 - score_text.get_width() // 2, SCREEN_HEIGHT - score_text.get_height() - 10))
+
     for edge in graph.edges:
         edge.draw()
     for node in graph.nodes:
         node.draw()
-
-
-def draw_game(graph: Graph, buttons: List[Button]):
-    screen.fill(WHITE)
-
-    draw_graph(graph)
     for button in buttons:
         button.draw()
     pygame.display.update()
@@ -463,13 +547,12 @@ def draw_game(graph: Graph, buttons: List[Button]):
 def main():
     graph = Graph()
     graph.add_node((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-    buttons = []
     buttons.append(Button(10, 10, 100, 50, "Add Node", graph.add_node))
 
 
     while True:
         event_handler(graph=graph, buttons=buttons)
-        draw_game(graph, buttons)
+        draw_game(graph)
         clock.tick(MAX_FPS)
 
 
