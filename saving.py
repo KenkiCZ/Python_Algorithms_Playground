@@ -1,8 +1,8 @@
 import json
+from dijkstra_parts import *
 from variables import *
 
 def save_graph(graph):
-    from dijkstra import Graph, Node, Edge
     # Convert the graph to a dictionary
     graph_data = {
         'nodes': [node.to_dict() for node in graph.nodes],
@@ -17,7 +17,10 @@ def save_graph(graph):
 
 
 def load_graph(graph):
-    from dijkstra import Graph, Node, Edge
+
+    graph.nodes.clear()
+    graph.edges.clear()
+
     with open('graph.json', 'r') as f:
         graph_data = json.load(f)
 

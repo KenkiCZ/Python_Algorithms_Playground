@@ -1,9 +1,16 @@
 import pygame
+from screeninfo import get_monitors
+
+
+def get_screen_size():
+    monitor = get_monitors()[0]
+    return monitor.width, monitor.height
+
 
 pygame.font.init()
 # DEFINITIONS of time
 NEXT_NODE_WAIT_TIME = 300
-END_GAME_WAIT_TIME = 10000
+END_GAME_WAIT_TIME = 5000
 
 
 # DEFINIONS of colors
@@ -20,8 +27,13 @@ BLUE = (0, 0, 255)
 NODE_RADIUS = 30
 BORDER_WIDTH = 3
 
-SCREEN_WIDTH = 1600
-SCREEN_HEIGHT = 1000
+SCREEN_WIDTH, SCREEN_HEIGHT = get_screen_size()
+SCREEN_HEIGHT -= 80
+SCREEN_WIDTH -= 80
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+
+# DEFINITIONS of edges
 EDGE_THICKNESS = 5
 
 RADIUS_INWARD = 1
