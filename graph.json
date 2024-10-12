@@ -1,0 +1,419 @@
+{
+    "nodes": [
+        {
+            "x": 219,
+            "y": 54,
+            "name": "A",
+            "root": true,
+            "radius": 30,
+            "value": 0
+        },
+        {
+            "x": 514,
+            "y": 497,
+            "name": "B",
+            "root": false,
+            "radius": 30,
+            "value": 40
+        },
+        {
+            "x": 200,
+            "y": 665,
+            "name": "C",
+            "root": false,
+            "radius": 30,
+            "value": 34
+        },
+        {
+            "x": 713,
+            "y": 891,
+            "name": "D",
+            "root": false,
+            "radius": 30,
+            "value": 59
+        },
+        {
+            "x": 716,
+            "y": 457,
+            "name": "E",
+            "root": false,
+            "radius": 30,
+            "value": 35
+        },
+        {
+            "x": 767,
+            "y": 196,
+            "name": "F",
+            "root": false,
+            "radius": 30,
+            "value": 23
+        },
+        {
+            "x": 1214,
+            "y": 209,
+            "name": "G",
+            "root": false,
+            "radius": 30,
+            "value": 32
+        },
+        {
+            "x": 959,
+            "y": 442,
+            "name": "H",
+            "root": false,
+            "radius": 30,
+            "value": 53
+        },
+        {
+            "x": 1121,
+            "y": 823,
+            "name": "I",
+            "root": true,
+            "radius": 30,
+            "value": 80
+        },
+        {
+            "x": 931,
+            "y": 667,
+            "name": "J",
+            "root": false,
+            "radius": 30,
+            "value": 58
+        },
+        {
+            "x": 973,
+            "y": 284,
+            "name": "K",
+            "root": false,
+            "radius": 30,
+            "value": 60
+        },
+        {
+            "x": 512,
+            "y": 327,
+            "name": "L",
+            "root": false,
+            "radius": 30,
+            "value": 29
+        },
+        {
+            "x": 506,
+            "y": 651,
+            "name": "M",
+            "root": false,
+            "radius": 30,
+            "value": 42
+        },
+        {
+            "x": 85,
+            "y": 480,
+            "name": "N",
+            "root": false,
+            "radius": 30,
+            "value": 25
+        },
+        {
+            "x": 212,
+            "y": 323,
+            "name": "O",
+            "root": false,
+            "radius": 30,
+            "value": 14
+        },
+        {
+            "x": 1323,
+            "y": 658,
+            "name": "P",
+            "root": false,
+            "radius": 30,
+            "value": 40
+        },
+        {
+            "x": 1221,
+            "y": 384,
+            "name": "Q",
+            "root": false,
+            "radius": 30,
+            "value": 41
+        },
+        {
+            "x": 971,
+            "y": 54,
+            "name": "R",
+            "root": false,
+            "radius": 30,
+            "value": 41
+        },
+        {
+            "x": 591,
+            "y": 49,
+            "name": "S",
+            "root": false,
+            "radius": 30,
+            "value": 20
+        },
+        {
+            "x": 329,
+            "y": 891,
+            "name": "T",
+            "root": false,
+            "radius": 30,
+            "value": 48
+        },
+        {
+            "x": 397,
+            "y": 195,
+            "name": "U",
+            "root": false,
+            "radius": 30,
+            "value": 9
+        },
+        {
+            "x": 1516,
+            "y": 661,
+            "name": "V",
+            "root": false,
+            "radius": 30,
+            "value": 52
+        },
+        {
+            "x": 1526,
+            "y": 436,
+            "name": "W",
+            "root": false,
+            "radius": 30,
+            "value": 72
+        },
+        {
+            "x": 1515,
+            "y": 45,
+            "name": "X",
+            "root": false,
+            "radius": 30,
+            "value": 60
+        },
+        {
+            "x": 1330,
+            "y": 51,
+            "name": "Y",
+            "root": false,
+            "radius": 30,
+            "value": 51
+        },
+        {
+            "x": 502,
+            "y": 806,
+            "name": "Z",
+            "root": false,
+            "radius": 30,
+            "value": 41
+        }
+    ],
+    "edges": [
+        {
+            "start": "R",
+            "end": "S",
+            "value": 21
+        },
+        {
+            "start": "F",
+            "end": "G",
+            "value": 9
+        },
+        {
+            "start": "E",
+            "end": "F",
+            "value": 12
+        },
+        {
+            "start": "E",
+            "end": "M",
+            "value": 13
+        },
+        {
+            "start": "C",
+            "end": "M",
+            "value": 12
+        },
+        {
+            "start": "C",
+            "end": "O",
+            "value": 30
+        },
+        {
+            "start": "A",
+            "end": "O",
+            "value": 14
+        },
+        {
+            "start": "F",
+            "end": "L",
+            "value": 7
+        },
+        {
+            "start": "L",
+            "end": "O",
+            "value": 16
+        },
+        {
+            "start": "B",
+            "end": "L",
+            "value": 12
+        },
+        {
+            "start": "B",
+            "end": "N",
+            "value": 15
+        },
+        {
+            "start": "E",
+            "end": "J",
+            "value": 24
+        },
+        {
+            "start": "D",
+            "end": "J",
+            "value": 1
+        },
+        {
+            "start": "D",
+            "end": "T",
+            "value": 16
+        },
+        {
+            "start": "C",
+            "end": "T",
+            "value": 14
+        },
+        {
+            "start": "H",
+            "end": "M",
+            "value": 14
+        },
+        {
+            "start": "H",
+            "end": "L",
+            "value": 24
+        },
+        {
+            "start": "A",
+            "end": "S",
+            "value": 20
+        },
+        {
+            "start": "L",
+            "end": "S",
+            "value": 9
+        },
+        {
+            "start": "A",
+            "end": "U",
+            "value": 9
+        },
+        {
+            "start": "F",
+            "end": "U",
+            "value": 14
+        },
+        {
+            "start": "K",
+            "end": "R",
+            "value": 19
+        },
+        {
+            "start": "H",
+            "end": "K",
+            "value": 15
+        },
+        {
+            "start": "H",
+            "end": "P",
+            "value": 36
+        },
+        {
+            "start": "I",
+            "end": "P",
+            "value": 11
+        },
+        {
+            "start": "D",
+            "end": "I",
+            "value": 21
+        },
+        {
+            "start": "G",
+            "end": "Q",
+            "value": 9
+        },
+        {
+            "start": "K",
+            "end": "Q",
+            "value": 20
+        },
+        {
+            "start": "Q",
+            "end": "V",
+            "value": 11
+        },
+        {
+            "start": "P",
+            "end": "V",
+            "value": 40
+        },
+        {
+            "start": "P",
+            "end": "X",
+            "value": 40
+        },
+        {
+            "start": "W",
+            "end": "X",
+            "value": 19
+        },
+        {
+            "start": "Q",
+            "end": "W",
+            "value": 31
+        },
+        {
+            "start": "G",
+            "end": "Y",
+            "value": 19
+        },
+        {
+            "start": "R",
+            "end": "Y",
+            "value": 14
+        },
+        {
+            "start": "X",
+            "end": "Y",
+            "value": 9
+        },
+        {
+            "start": "J",
+            "end": "Z",
+            "value": 17
+        },
+        {
+            "start": "C",
+            "end": "Z",
+            "value": 7
+        },
+        {
+            "start": "M",
+            "end": "Z",
+            "value": 1
+        },
+        {
+            "start": "A",
+            "end": "N",
+            "value": 25
+        },
+        {
+            "start": "C",
+            "end": "N",
+            "value": 9
+        }
+    ]
+}

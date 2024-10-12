@@ -1,10 +1,14 @@
+from variables import *
+from saving import save_graph, load_graph
+
 import pygame
-import math
 from pygame import gfxdraw
+import math
+import sys
+
 from typing import List, Dict
 from queue import PriorityQueue
-from variables import *
-import sys
+
 
 # Initialize Pygame
 pygame.init()
@@ -13,6 +17,7 @@ clock = pygame.time.Clock()
 
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+graph = None
 buttons = []
 
 def get_mouse_coords():
@@ -21,13 +26,13 @@ def get_mouse_coords():
 
 
 class Node:
-    def __init__(self, x: int, y: int, name: str):
+    def __init__(self, x: int, y: int, name: str = None):
         self.x = x
         self.y = y
         self.name = name
 
-        self.root = False
-        self.action = False
+        self.root = None
+        self.action = None
 
         self.radius = NODE_RADIUS
         self.color = WHITE
@@ -62,13 +67,15 @@ class Node:
             mouse_x, mouse_y = get_mouse_coords()
             pygame.draw.line(screen, self.border_color, (self.x, self.y), (mouse_x, mouse_y), self.border_width)
 
-
     def check_actions(self):
-        if self.action == "Current":
-            self.color = BLUE
-
         if self.root == True:
             self.color = GREEN
+        
+        elif self.action == "Current":
+            self.color = BLUE
+    
+        elif self.action == None:
+            self.color = WHITE
 
     def mouse_over(self, coords: tuple):
         """Checks if the mouse is over the node
@@ -95,11 +102,26 @@ class Node:
     def __lt__(self, other):
         return self.value < other.value
 
+    def __name__(self):
+        return self.name
+
+    def to_dict(self):
+        """Convert Node to a dictionary."""
+        return {
+            'x': self.x,
+            'y': self.y,
+            'name': self.name,
+            'root': self.root,
+            'radius': self.radius,
+            'value': self.value,
+        }
+    
+
 class Edge:
     def __init__(self, start: Node, end: Node):
         self.start = start
         self.end = end
-        self.action = False
+        self.action = None
         self.value = 1
 
         self.color = BLACK
@@ -116,14 +138,6 @@ class Edge:
     def calculate_new_edge_points(self):
         """
         Calculate new start and end points for an edge that are closer by 2*radius on both ends.
-
-        Parameters:
-        start (tuple): (x1, y1) coordinates of the start point (P1)
-        end (tuple): (x2, y2) coordinates of the end point (P2)
-        radius (float): radius of the node
-
-        Returns:
-        tuple: (new_start, new_end) coordinates
         """
         x1, y1 = self.start.x, self.start.y
         x2, y2 = self.end.x, self.end.y
@@ -144,7 +158,9 @@ class Edge:
         return new_start, new_end
 
     def mouse_over(self, coords: tuple):
-        """Checks if the mouse is over the edge"""
+        """
+        Checks if the mouse is over the edge
+        """
         x, y = coords
 
         new_start, new_end = self.calculate_new_edge_points()
@@ -174,8 +190,18 @@ class Edge:
             self.color = RED
         elif self.action == "Hover":
             self.color = DARK_GRAY
+        elif self.action == "Shortest":
+            self.color = GREEN
         else:
             self.color = BLACK
+
+    def to_dict(self):
+        """Convert Edge to a dictionary."""
+        return {
+            'start': self.start.name,
+            'end': self.end.name,
+            'value': self.value
+        }
 
 
 class Graph:
@@ -183,8 +209,9 @@ class Graph:
         self.nodes: List[Node] = []
         self.edges: List[Edge] = []
         
-    def add_node(self, coord: tuple):
-        node = Node(*coord, name=self.gen_name())
+    def add_node(self, node: Node, name: str = None):
+        if name == None:
+            node.name = self.gen_name()
         self.nodes.append(node)
         
     def add_edge(self, edge: Edge):
@@ -193,8 +220,9 @@ class Graph:
     def gen_name(self):
         return chr(ord('A') + len(self.nodes))
     
-    def get_next_nodes(self, node: Node) -> Dict[Node, int]:
-        """Get the next nodes for a given node
+    def get_next_nodes(self, node: Node, visited: List[Node]) -> Dict[Node, int]:
+        """
+        Get the next nodes for a given node
         Returns a dictionary with the next nodes and their weights
         """
         
@@ -202,10 +230,12 @@ class Graph:
         for edge in self.edges:
             if edge.start == node:
                 next_nodes[edge.end] = edge.value
-                edge.end.value = edge.value
+                if edge.end not in visited:
+                    edge.end.value = edge.value
             elif edge.end == node:
                 next_nodes[edge.start] = edge.value
-                edge.start.value = edge.value
+                if edge.start not in visited:
+                    edge.start.value = edge.value
                 
         
         return next_nodes
@@ -240,7 +270,7 @@ class Graph:
                 break
 
             # Explore neighbors
-            for neighbor, weight in self.get_next_nodes(current_node).items():
+            for neighbor, weight in self.get_next_nodes(current_node, visited).items():
                 if neighbor in visited:
                     continue
                 new_distance = current_distance + weight
@@ -256,16 +286,19 @@ class Graph:
 
             current_node.action = "Current"
             draw_game(self)
-            pygame.time.wait(2500)  # Slow down visualization for 2.5 seconds
+            pygame.time.wait(NEXT_NODE_WAIT_TIME)  # Slow down visualization for 2.5 seconds
         
         # Reset node actions after the algorithm finishes
-        for node in self.nodes:
-            node.action = None
+        reset_node_actions(self)
 
         return previous, distances
 
     def get_shortest_path(self, start: Node, end: Node):
-        """Returns the shortest path from start node to end node using the 'previous' dictionary."""
+        """
+        Returns the shortest path from start node to end node using the 'previous' dictionary.
+        """
+        for node in self.nodes:
+            node.value = float("infinity")        
         previous, distances = self.dijkstra_algorithm(start)
         path = []
         current_node = end
@@ -273,7 +306,13 @@ class Graph:
         # Backtrack from the end node to the start node using the previous dictionary
         while current_node is not None:
             path.append(current_node)
-            current_node = previous.get(current_node, None)
+            previous_node = previous.get(current_node, None)
+            for edge in self.edges:
+                if edge.start == previous_node and edge.end == current_node or edge.end == previous_node and edge.start == current_node:
+                    edge.action = "Shortest"
+            
+            current_node = previous_node
+                    
 
         path.reverse()
 
@@ -319,10 +358,43 @@ class Button:
     
     def clicked(self):
         if self.function is not None:
+            self.function()
+            return True
+        
+class MakeNodeButton(Button):
+    def __init__(self, x: int, y: int, width: int, height: int, function=None):
+        super().__init__(x, y, width, height, "Create Node", function)
+    
+    def clicked(self):
+        if self.function is not None:
             self.color = DARK_GRAY
-            self.function(((self.x + self.width) * 2 , self.y + self.height))
+            self.function(Node((self.x + self.width) * 2 , self.y + self.height))
+            return True
+        
+class SaveGraphButton(Button):
+    def __init__(self, x: int, y: int, width: int, height: int, graph: Graph):
+        super().__init__(x, y, width, height, "Save Graph", save_graph)
+        self.graph = graph
+    
+    def clicked(self):
+        if self.function is not None:
+            self.color = DARK_GRAY
+            self.function(self.graph)
             return True
     
+class LoadGraphButton(Button):
+    def __init__(self, x: int, y: int, width: int, height: int, graph: Graph):
+        super().__init__(x, y, width, height, "Load Graph", load_graph)
+        self.graph = graph
+    
+    def clicked(self):
+        if self.function is not None:
+            self.color = DARK_GRAY
+
+            self.function(self.graph)
+            return True
+            
+
 def connect_nodes(graph, connected_nodes):
     """Connect two nodes with an edge"""
     connect = True
@@ -338,13 +410,19 @@ def connect_nodes(graph, connected_nodes):
         print(f"Nodes connected: {connected_nodes[0].name}, {connected_nodes[1].name}")
         
     for node in connected_nodes:
-        node.action = False
+        node.action = None
 
 
 def reset_node_actions(graph):
-    """Reset the action of all nodes to 'False'"""
+    """Reset the action of all nodes to 'None'"""
     for node in graph.nodes:
-        node.action = False
+        node.action = None
+
+
+def reset_edge_actions(graph):
+    """Reset the action of all edges to 'None'"""
+    for edge in graph.edges:
+        edge.action = None
 
 
 def handle_numeric_input(event , node: Node):
@@ -379,7 +457,7 @@ def handle_numeric_input(event , node: Node):
         numeric_input = numeric_input[:-1]
 
     elif event.key == pygame.K_RETURN:
-        node.action = False
+        node.action = None
         return numeric_input 
     
     if not numeric_input:
@@ -413,6 +491,7 @@ def event_handler(buttons: List[Button], graph: Graph):
                 edge.mouse_over((mouse_x, mouse_y))
 
          # Mouse button click event
+
         if event.type == pygame.MOUSEBUTTONUP:
             mouse_x, mouse_y = event.pos
 
@@ -449,7 +528,7 @@ def event_handler(buttons: List[Button], graph: Graph):
         if event.type == pygame.KEYUP:
             # Create a new node when 'e' is pressed
             if event.key == pygame.K_e:
-                graph.add_node((mouse_x, mouse_y))
+                graph.add_node(Node(mouse_x, mouse_y))
 
             # Create a new edge when 'q' is pressed
             elif event.key == pygame.K_q:
@@ -505,13 +584,16 @@ def event_handler(buttons: List[Button], graph: Graph):
             elif event.key == pygame.K_SPACE:
                 root_nodes = [node for node in graph.nodes if node.root]
                 if len(root_nodes) == 2:
-                    
-                        
+                
                     start_node = next((node for node in graph.nodes if node.root), None)
+                    
                     if start_node:
                         distance = graph.get_shortest_path(start_node, root_nodes[1])
                         draw_game(graph, distance)
-                        pygame.time.wait(5000)
+                        pygame.time.wait(END_GAME_WAIT_TIME)
+
+                        reset_node_actions(graph)
+                        reset_edge_actions(graph)
 
             else:
                 # Get the target edge
@@ -544,9 +626,9 @@ def draw_game(graph: Graph, score: int = None):
 
 def main():
     graph = Graph()
-    graph.add_node((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-    buttons.append(Button(10, 10, 100, 50, "Add Node", graph.add_node))
-
+    buttons.append(MakeNodeButton(10, 10, 100, 50, graph.add_node))
+    buttons.append(SaveGraphButton(10, 70, 100, 50, graph))
+    buttons.append(LoadGraphButton(10, 130, 100, 50, graph))
 
     while True:
         event_handler(graph=graph, buttons=buttons)
