@@ -10,7 +10,7 @@ def save_graph(graph):
     }
     
     # Save the graph data to a JSON file
-    with open('graph.json', 'w') as f:
+    with open(SAVE_PATH, 'w') as f:
         json.dump(graph_data, f, indent=4)
 
     print("Graph saved to graph.json")
@@ -21,7 +21,7 @@ def load_graph(graph):
     graph.nodes.clear()
     graph.edges.clear()
 
-    with open('graph.json', 'r') as f:
+    with open(LOAD_PATH, 'r') as f:
         graph_data = json.load(f)
 
     # Create a new Graph instance

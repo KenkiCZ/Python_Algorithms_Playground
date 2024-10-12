@@ -1,5 +1,6 @@
 import pygame
 from screeninfo import get_monitors
+pygame.font.init()
 
 
 def get_screen_size():
@@ -7,11 +8,14 @@ def get_screen_size():
     return monitor.width, monitor.height
 
 
-pygame.font.init()
 # DEFINITIONS of time
 NEXT_NODE_WAIT_TIME = 300
 END_GAME_WAIT_TIME = 5000
 
+
+# DEFINITIONS of paths
+SAVE_PATH = "graph_2.json"
+LOAD_PATH = "graph_2.json"
 
 # DEFINIONS of colors
 
