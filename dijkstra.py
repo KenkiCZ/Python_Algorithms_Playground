@@ -225,7 +225,6 @@ class Graph:
         while not pq.empty():
             current_distance, current_node = pq.get()
 
-            # Skip if we have already visited this node
             if current_node in visited:
                 continue
 
@@ -274,12 +273,10 @@ class Graph:
         # Backtrack from the end node to the start node using the previous dictionary
         while current_node is not None:
             path.append(current_node)
-            current_node = previous.get(current_node, None)  # Use get() to avoid KeyError
+            current_node = previous.get(current_node, None)
 
-        # Reverse the path to get the correct order from start to end
         path.reverse()
 
-        # Check if the path starts with the start node (i.e., a valid path was found)
         if path and path[0] == start:
             print(f"Shortest path from {start.name} to {end.name}: {[node.name for node in path]}")
             print(f"Total distance: {distances[end]}")
@@ -541,6 +538,7 @@ def draw_game(graph: Graph, score: int = None):
         node.draw()
     for button in buttons:
         button.draw()
+
     pygame.display.update()
 
 
