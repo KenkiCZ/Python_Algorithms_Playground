@@ -14,7 +14,7 @@ END_GAME_WAIT_TIME = 5000
 
 
 # DEFINITIONS of paths
-SAVE_PATH = "graph_2.json"
+SAVE_PATH = "graph_3.json"
 LOAD_PATH = "graph_2.json"
 
 # DEFINIONS of colors
